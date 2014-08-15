@@ -39,12 +39,6 @@ section = os.environ.get('CONTEXT', 'restauth')
 crypt_algo = config.get(section, 'hash')
 
 
-# Append any python path
-pythonpath = config.get(section, 'PYTHONPATH')
-if pythonpath is not None:
-    sys.path = pythonpath.split(':') + sys.path
-
-
 #######################
 ### Cache baseclass ###
 #######################
@@ -143,11 +137,7 @@ class RedisCache(CacheBase):
         if not self.conn.exists(key):
             return None
 
-        matched = self.conn.smembers(key) & set([bytes(g, 'utf-8') for g in groups])
-        if matched:
-            return True
-        else:
-            return False
+        return not self.conn.smembers(key).isdisjoint(set([bytes(g, 'utf-8') for g in groups]))
 
     def set_groups(self, user, groups):
         key = self.prefix('%s-groups' % user)
@@ -180,10 +170,10 @@ class MemcachedCache(CacheBase):
         cached = self.conn.get(self.key('%s-groups' % user))
         if cached is None:
             return None
-        return not cached.isdisjoint(set(groups))
+        return not cached.isdisjoint(groups)
 
     def set_groups(self, user, groups):
-        self.conn.set(self.key('%s-groups' % user), set(groups), self.expire)
+        self.conn.set(self.key('%s-groups' % user), groups, self.expire)
 
 
 # Query cache if configured
@@ -235,9 +225,9 @@ elif authtype == 'group':
     checked = set(line2.split())
     groups = set([g.name for g in user.get_groups()])
 
-    if checked & groups:
+    if checked.isdisjoint(groups):
+        sys.exit(1)
+    else:
         if cache is not None:
             cache.set_groups(username, groups)
         sys.exit(0)
-    else:
-        sys.exit(1)
