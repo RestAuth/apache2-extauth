@@ -49,40 +49,40 @@ class CacheBase(object):
     def prefix(self, key):
         return 'authnz-external:%s:%s' % (section, key)
 
-    def _hash_bcrypt(self, password, salt=None):
-        if self._bcrypt is None:
-            import bcrypt
-            self._bcrypt = bcrypt
-
-        if salt is None:
-            return bcrypt.hashpw(password, bcrypt.gensalt(self.rounds))
-        else:
-            return bcrypt.hashpw(password, salt)
-
-    def _hash_pbkdf2_hmac(self, password, salt=None):
-        if salt is None:
-            salt = os.urandom(12)
-            ascii_salt = binascii.hexlify(salt).decode('utf-8')
-        else:
-            ascii_salt = salt.split('$', 1)[0]
-            salt = binascii.unhexlify(ascii_salt)
-
-        dk = hashlib.pbkdf2_hmac(self._pbkdf2_hash, bytes(password, 'utf-8'), salt, self.rounds)
-        return '%s$%s' % (ascii_salt, binascii.hexlify(dk).decode('utf-8'))
-
-    def _hash_hashlib(self, password, salt=None):
-        if salt is None:
-            salt = binascii.hexlify(os.urandom(12)).decode('utf-8')
-        else:
-            salt = salt.split('$', 1)[0]
-
-        to_hash = bytes('%s$%s' % (salt, password), 'utf-8')
-        return '%s$%s' % (salt, getattr(hashlib, crypt_algo)(to_hash).hexdigest())
-
-    def _hash_none(self, password, salt=None):
-        return password
-
     if authtype == 'pass':
+        def _hash_bcrypt(self, password, salt=None):
+            if self._bcrypt is None:
+                import bcrypt
+                self._bcrypt = bcrypt
+
+            if salt is None:
+                return bcrypt.hashpw(password, bcrypt.gensalt(self.rounds))
+            else:
+                return bcrypt.hashpw(password, salt)
+
+        def _hash_pbkdf2_hmac(self, password, salt=None):
+            if salt is None:
+                salt = os.urandom(12)
+                ascii_salt = binascii.hexlify(salt).decode('utf-8')
+            else:
+                ascii_salt = salt.split('$', 1)[0]
+                salt = binascii.unhexlify(ascii_salt)
+
+            dk = hashlib.pbkdf2_hmac(self._pbkdf2_hash, bytes(password, 'utf-8'), salt, self.rounds)
+            return '%s$%s' % (ascii_salt, binascii.hexlify(dk).decode('utf-8'))
+
+        def _hash_hashlib(self, password, salt=None):
+            if salt is None:
+                salt = binascii.hexlify(os.urandom(12)).decode('utf-8')
+            else:
+                salt = salt.split('$', 1)[0]
+
+            to_hash = bytes('%s$%s' % (salt, password), 'utf-8')
+            return '%s$%s' % (salt, getattr(hashlib, crypt_algo)(to_hash).hexdigest())
+
+        def _hash_none(self, password, salt=None):
+            return password
+
         if crypt_algo == 'bcrypt':
             hash = _hash_bcrypt
             if config.has_option(section, 'hash-rounds'):
