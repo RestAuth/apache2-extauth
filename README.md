@@ -37,9 +37,8 @@ DefineExternalGroup restauth pipe .../restauth-extauth.py
 </Location>
 ```
 
-
 Apache 2.2
-
+----------
 
 Test
 ====
