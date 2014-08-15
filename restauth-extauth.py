@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-
 import binascii
 import hashlib
 import os
-import random
 import sys
 
 from configparser import ConfigParser
