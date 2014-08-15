@@ -34,8 +34,10 @@ config.read([
     os.path.expanduser(os.path.join('~', '.restauth-extauth.conf')),
     os.path.join(os.path.dirname(sys.argv[0]), 'restauth-extauth.conf'),
 ])
+authtype = os.environ.get('AUTHTYPE', 'PASS').lower()  # check password or groups
 section = os.environ.get('CONTEXT', 'restauth')
 crypt_algo = config.get(section, 'hash')
+
 
 # Append any python path
 pythonpath = config.get(section, 'PYTHONPATH')
@@ -86,27 +88,28 @@ class CacheBase(object):
     def _hash_none(self, password, salt=None):
         return password
 
-    if crypt_algo == 'bcrypt':
-        hash = _hash_bcrypt
-        if config.has_option(section, 'hash-rounds'):
-            rounds = config.getint(section, 'hash-rounds')
+    if authtype == 'pass':
+        if crypt_algo == 'bcrypt':
+            hash = _hash_bcrypt
+            if config.has_option(section, 'hash-rounds'):
+                rounds = config.getint(section, 'hash-rounds')
+            else:
+                rounds = 12
+        elif crypt_algo == 'pbkdf2_hmac':
+            hash = _hash_pbkdf2_hmac
+            _pbkdf2_hash = config.get(section, 'pbkdf2-hash')
+            if config.has_option(section, 'hash-rounds'):
+                rounds = config.getint(section, 'hash-rounds')
+            else:
+                rounds = 100000
+        elif hasattr(hashlib, crypt_algo):
+            hash = _hash_hashlib
+        elif not crypt_algo:
+            print('no hash', file=sys.stderr)
+            hash = _hash_none
         else:
-            rounds = 12
-    elif crypt_algo == 'pbkdf2_hmac':
-        hash = _hash_pbkdf2_hmac
-        _pbkdf2_hash = config.get(section, 'pbkdf2-hash')
-        if config.has_option(section, 'hash-rounds'):
-            rounds = config.getint(section, 'hash-rounds')
-        else:
-            rounds = 100000
-    elif hasattr(hashlib, crypt_algo):
-        hash = _hash_hashlib
-    elif not crypt_algo:
-        print('no hash', file=sys.stderr)
-        hash = _hash_none
-    else:
-        print('Unknown hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
-        hash = _hash_none
+            print('Unknown hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
+            hash = _hash_none
 
 
 ###################
@@ -183,9 +186,6 @@ class MemcachedCache(CacheBase):
     def set_groups(self, user, groups):
         self.conn.set(self.key('%s-groups' % user), set(groups), self.expire)
 
-
-# Find out if we should check a password or a group membership
-authtype = os.environ.get('AUTHTYPE', 'PASS').lower()
 
 # Query cache if configured
 cache = config.get(section, 'cache')
