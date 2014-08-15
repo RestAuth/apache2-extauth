@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import binascii
 import hashlib
 import os
 import random
@@ -25,7 +26,8 @@ config = ConfigParser({
     'redis-port': '6379',
     'redis-db': '0',
     'memcache-server': '127.0.0.1:11211',
-    'password-hash': '',
+    'hash': '',
+    'pbkdf2-hash': 'sha256',
 })
 config.read([
     '/etc/restauth-extauth.conf',
@@ -33,7 +35,7 @@ config.read([
     os.path.join(os.path.dirname(sys.argv[0]), 'restauth-extauth.conf'),
 ])
 section = os.environ.get('CONTEXT', 'restauth')
-crypt_algo = config.get(section, 'password-hash')
+crypt_algo = config.get(section, 'hash')
 
 # Append any python path
 pythonpath = config.get(section, 'PYTHONPATH')
@@ -51,23 +53,30 @@ class CacheBase(object):
     def prefix(self, key):
         return 'authnz-external:%s:%s' % (section, key)
 
-    def _salt(self, length=12):
-        chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-        return ''.join([random.choice(chars) for i in range(length)])
-
     def _hash_bcrypt(self, password, salt=None):
         if self._bcrypt is None:
             import bcrypt
             self._bcrypt = bcrypt
 
         if salt is None:
-            return bcrypt.hashpw(password, bcrypt.gensalt())
+            return bcrypt.hashpw(password, bcrypt.gensalt(self.rounds))
         else:
             return bcrypt.hashpw(password, salt)
 
+    def _hash_pbkdf2_hmac(self, password, salt=None):
+        if salt is None:
+            salt = os.urandom(12)
+            ascii_salt = binascii.hexlify(salt).decode('utf-8')
+        else:
+            ascii_salt = salt.split('$', 1)[0]
+            salt = binascii.unhexlify(ascii_salt)
+
+        dk = hashlib.pbkdf2_hmac(self._pbkdf2_hash, bytes(password, 'utf-8'), salt, self.rounds)
+        return '%s$%s' % (ascii_salt, binascii.hexlify(dk).decode('utf-8'))
+
     def _hash_hashlib(self, password, salt=None):
         if salt is None:
-            salt = self._salt()
+            salt = binascii.hexlify(os.urandom(12)).decode('utf-8')
         else:
             salt = salt.split('$', 1)[0]
 
@@ -79,13 +88,26 @@ class CacheBase(object):
 
     if crypt_algo == 'bcrypt':
         hash = _hash_bcrypt
+        if config.has_option(section, 'hash-rounds'):
+            rounds = config.getint(section, 'hash-rounds')
+        else:
+            rounds = 12
+    elif crypt_algo == 'pbkdf2_hmac':
+        hash = _hash_pbkdf2_hmac
+        _pbkdf2_hash = config.get(section, 'pbkdf2-hash')
+        if config.has_option(section, 'hash-rounds'):
+            rounds = config.getint(section, 'hash-rounds')
+        else:
+            rounds = 100000
     elif hasattr(hashlib, crypt_algo):
         hash = _hash_hashlib
     elif not crypt_algo:
+        print('no hash', file=sys.stderr)
         hash = _hash_none
     else:
-        print('Unknown password-hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
+        print('Unknown hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
         hash = _hash_none
+
 
 ###################
 ### Redis cache ###
