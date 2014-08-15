@@ -36,10 +36,16 @@ pythonpath = config.get(section, 'PYTHONPATH')
 if pythonpath is not None:
     sys.path = pythonpath.split(':') + sys.path
 
+#######################
+### Cache baseclass ###
+#######################
+class CacheBase(object):
+    expire = config.getint(section, 'cache-expire')
+
 ###################
 ### Redis cache ###
 ###################
-class RedisCache(object):
+class RedisCache(CacheBase):
     def __init__(self, config, section):
         import redis
         self.conn = redis.StrictRedis(
@@ -83,12 +89,11 @@ class RedisCache(object):
 #######################
 ### Memcached cache ###
 #######################
-class MemcachedCache(object):
+class MemcachedCache(CacheBase):
     def __init__(self, config, section):
         import memcache, hashlib
         self.hashlib = hashlib
         self.conn = memcache.Client(config.get(section, 'memcache-server').split())
-        self.expire = config.getint(section, 'cache-expire')
 
     def key(self, raw):
         return self.hashlib.md5(bytes(raw, 'utf-8')).hexdigest()
