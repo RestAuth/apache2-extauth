@@ -62,13 +62,27 @@ class RedisCache(object):
     def set_password(self, user, password):
         self.conn.set('%s-pass' % user, password, ex=self.expire)
 
-    def in_group(self, user, group):
-        pass
+    def in_groups(self, user, groups):
+        key = '%s-groups' % user
+        if not self.conn.exists(key):
+            return None
+
+        matched = self.conn.smembers(key) & set([bytes(g, 'utf-8') for g in groups])
+        if matched:
+            return True
+        else:
+            return False
+
+    def set_groups(self, user, groups):
+        key = '%s-groups' % user
+        pipe = self.conn.pipeline()
+        pipe.sadd(key, *groups).expire(key, self.expire)
+        pipe.execute()
 
 # Find out if we should check a password or a group membership
 authtype = os.environ.get('AUTHTYPE', 'PASS').lower()
 
-# Setup cache
+# Query cache if configured
 cache = config.get(section, 'cache')
 if cache is not None:
     if cache == 'redis':
@@ -84,6 +98,13 @@ if cache is not None:
         elif checked is False:
             sys.exit(1)
         # else: cache miss
+    elif authtype == 'group':
+        checked = cache.in_groups(username, line2.split())
+        if checked is True:
+            sys.exit(0)
+        elif checked is False:
+            sys.exit(1)
+        # else: cache miss
 
 # Setup RestAuth connection
 conn = RestAuthConnection(
@@ -93,6 +114,7 @@ conn = RestAuthConnection(
 )
 user = User(conn, username)
 
+# Actual RestAuth queries in case cache does not match
 if authtype == 'pass':
     if user.verify_password(line2):
         # set in cache if defined
@@ -104,7 +126,12 @@ if authtype == 'pass':
         sys.exit(1)
 
 elif authtype == 'group':
-    if user.in_group(line2):
+    checked = set(line2.split())
+    groups = set([g.name for g in user.get_groups()])
+
+    if checked & groups:
+        if cache is not None:
+            cache.set_groups(username, groups)
         sys.exit(0)
     else:
         sys.exit(1)
