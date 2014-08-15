@@ -6,6 +6,15 @@ import os
 import sys
 
 from configparser import ConfigParser
+
+from RestAuthClient.restauth_user import User
+from RestAuthClient.common import RestAuthConnection
+
+# Read data from stdin
+username = sys.stdin.readline().strip("\n")
+line2 = sys.stdin.readline().strip("\n")
+
+# Read configuration
 config = ConfigParser({
     'PYTHONPATH': '',
 })
@@ -16,24 +25,20 @@ config.read([
 ])
 section = os.environ.get('CONTEXT', 'restauth')
 
+# Append any python path
 pythonpath = config.get(section, 'PYTHONPATH')
 if pythonpath:
     sys.path = pythonpath.split(':') + sys.path
 
-from RestAuthClient.restauth_user import User
-from RestAuthClient.common import RestAuthConnection
-
-username = sys.stdin.readline().strip("\n")
-line2 = sys.stdin.readline().strip("\n")
-
+# Setup RestAuth connection
 conn = RestAuthConnection(
     config.get(section, 'server'),
     config.get(section, 'user'),
     config.get(section, 'password'),
 )
 user = User(conn, username)
-authtype = os.environ.get('AUTHTYPE', 'PASS').lower()
 
+authtype = os.environ.get('AUTHTYPE', 'PASS').lower()
 if authtype == 'pass':
     if user.verify_password(line2):
         sys.exit(0)
