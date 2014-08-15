@@ -108,7 +108,8 @@ class RedisCache(CacheBase):
         if cached is None:
             return cached
         else:
-            return cached == bytes(self.hash(password, cached.decode('utf-8')), 'utf-8')
+            cached = cached.decode('utf-8')
+            return cached == self.hash(password, cached)
 
     def set_password(self, user, password):
         self.conn.set(self.prefix('%s-pass' % user), self.hash(password), ex=self.expire)
