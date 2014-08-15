@@ -18,6 +18,7 @@ line2 = sys.stdin.readline().strip("\n")
 config = ConfigParser({
     'PYTHONPATH': None,
     'cache': None,
+    'cache-expire': '300',
     'redis-server': 'localhost',
     'redis-port': '6379',
     'redis-db': '0',
@@ -45,6 +46,7 @@ class RedisCache(object):
             config.getint(section, 'redis-port'),
             config.getint(section, 'redis-db')
         )
+        self.expire = config.getint(section, 'cache-expire')
 
     def check_password(self, user, password):
         """Check the given user and password.
@@ -52,14 +54,13 @@ class RedisCache(object):
         Returns None on cache miss, True if password matches, False if not.
         """
         cached = self.conn.get('%s-pass' % user)
-        print('Got from cache: "%s", checking "%s"' % (cached, password), file=sys.stderr)
         if cached is None:
             return cached
         else:
             return cached == bytes(password, 'utf-8')
 
     def set_password(self, user, password):
-        self.conn.set('%s-pass' % user, password)
+        self.conn.set('%s-pass' % user, password, ex=self.expire)
 
     def in_group(self, user, group):
         pass
