@@ -22,6 +22,7 @@ config = ConfigParser({
     'redis-server': 'localhost',
     'redis-port': '6379',
     'redis-db': '0',
+    'memcache-server': '127.0.0.1:11211',
 })
 config.read([
     '/etc/restauth-extauth.conf',
@@ -79,6 +80,38 @@ class RedisCache(object):
         pipe.sadd(key, *groups).expire(key, self.expire)
         pipe.execute()
 
+#######################
+### Memcached cache ###
+#######################
+class MemcachedCache(object):
+    def __init__(self, config, section):
+        import memcache, hashlib
+        self.hashlib = hashlib
+        self.conn = memcache.Client(config.get(section, 'memcache-server').split())
+        self.expire = config.getint(section, 'cache-expire')
+
+    def key(self, raw):
+        return self.hashlib.md5(bytes(raw, 'utf-8')).hexdigest()
+
+    def check_password(self, user, password):
+        cached = self.conn.get(self.key('%s-pass' % user))
+        if cached is None:
+            return cached
+        return cached == password
+
+    def set_password(self, user, password):
+        self.conn.set(self.key('%s-pass' % user), password, self.expire)
+
+    def in_groups(self, user, groups):
+        cached = self.conn.get(self.key('%s-groups' % user))
+        if cached is None:
+            return None
+        return not cached.isdisjoint(set(groups))
+
+    def set_groups(self, user, groups):
+        self.conn.set(self.key('%s-groups' % user), set(groups), self.expire)
+
+
 # Find out if we should check a password or a group membership
 authtype = os.environ.get('AUTHTYPE', 'PASS').lower()
 
@@ -87,8 +120,10 @@ cache = config.get(section, 'cache')
 if cache is not None:
     if cache == 'redis':
         cache = RedisCache(config, section)
+    elif cache == 'memcache':
+        cache = MemcachedCache(config, section)
     else:
-        print('Unknown cache "%s".', file=sys.stderr)
+        print('Unknown cache "%s".' % cache, file=sys.stderr)
         sys.exit(1)
 
     if authtype == 'pass':
