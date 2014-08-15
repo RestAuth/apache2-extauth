@@ -43,6 +43,9 @@ if pythonpath is not None:
 class CacheBase(object):
     expire = config.getint(section, 'cache-expire')
 
+    def prefix(self, key):
+        return 'authnz-external:%s:%s' % (section, key)
+
 
 ###################
 ### Redis cache ###
@@ -62,17 +65,17 @@ class RedisCache(CacheBase):
 
         Returns None on cache miss, True if password matches, False if not.
         """
-        cached = self.conn.get('%s-pass' % user)
+        cached = self.conn.get(self.prefix('%s-pass' % user))
         if cached is None:
             return cached
         else:
             return cached == bytes(password, 'utf-8')
 
     def set_password(self, user, password):
-        self.conn.set('%s-pass' % user, password, ex=self.expire)
+        self.conn.set(self.prefix('%s-pass' % user), password, ex=self.expire)
 
     def in_groups(self, user, groups):
-        key = '%s-groups' % user
+        key = self.prefix('%s-groups' % user)
         if not self.conn.exists(key):
             return None
 
@@ -83,7 +86,7 @@ class RedisCache(CacheBase):
             return False
 
     def set_groups(self, user, groups):
-        key = '%s-groups' % user
+        key = self.prefix('%s-groups' % user)
         pipe = self.conn.pipeline()
         pipe.sadd(key, *groups).expire(key, self.expire)
         pipe.execute()
@@ -100,7 +103,7 @@ class MemcachedCache(CacheBase):
         self.conn = memcache.Client(config.get(section, 'memcache-server').split())
 
     def key(self, raw):
-        return self.hashlib.md5(bytes(raw, 'utf-8')).hexdigest()
+        return self.prefix(self.hashlib.md5(bytes(raw, 'utf-8')).hexdigest())
 
     def check_password(self, user, password):
         cached = self.conn.get(self.key('%s-pass' % user))
