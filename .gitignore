@@ -1,2 +1,6 @@
 *.py[co]
 *.sw[op]
+/bin/
+/include/
+/lib/
+/local/
