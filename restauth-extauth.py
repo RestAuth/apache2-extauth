@@ -114,7 +114,8 @@ class RedisCache(CacheBase):
         self.conn = redis.StrictRedis(
             config.get(section, 'redis-server'),
             config.getint(section, 'redis-port'),
-            config.getint(section, 'redis-db')
+            config.getint(section, 'redis-db'),
+            decode_responses=True
         )
 
     def check_password(self, user, password):
@@ -126,7 +127,6 @@ class RedisCache(CacheBase):
         if cached is None:
             return cached
         else:
-            cached = cached.decode('utf-8')
             return cached == self.hash(password, cached)
 
     def set_password(self, user, password):
@@ -137,7 +137,7 @@ class RedisCache(CacheBase):
         if not self.conn.exists(key):
             return None
 
-        return not self.conn.smembers(key).isdisjoint(set([bytes(g, 'utf-8') for g in groups]))
+        return not self.conn.smembers(key).isdisjoint(groups)
 
     def set_groups(self, user, groups):
         key = self.prefix('%s-groups' % user)
