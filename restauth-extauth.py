@@ -105,7 +105,6 @@ class CacheBase(object):
         elif hasattr(hashlib, crypt_algo):
             hash = _hash_hashlib
         elif not crypt_algo:
-            print('no hash', file=sys.stderr)
             hash = _hash_none
         else:
             print('Unknown hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
