@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function, unicode_literals
+
 import binascii
 import hashlib
 import os
 import sys
 
-from configparser import ConfigParser
+if sys.version_info >= 3:
+    from configparser import ConfigParser
+else:
+    from configparser import configparser
 
 from RestAuthClient.restauth_user import User
 from RestAuthClient.common import RestAuthConnection
