@@ -163,7 +163,7 @@ class MemcachedCache(CacheBase):
         return cached == self.hash(password, cached)
 
     def set_password(self, user, password):
-        self.conn.set(self.key('%s-pass' % user), self.hash(password), self.expire)
+        self.conn.set(self.key('%s-pass' % user), self.hash(password, None), self.expire)
 
     def in_groups(self, user, groups):
         cached = self.conn.get(self.key('%s-groups' % user))
