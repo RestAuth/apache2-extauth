@@ -51,7 +51,7 @@ class CacheBase(object):
     def prefix(self, key):
         return 'authnz-external:%s:%s' % (section, key)
 
-    if authtype == 'pass':
+    if authtype == 'pass' and crypt_algo:
         def _hash_bcrypt(self, password, salt=None):
             if self._bcrypt is None:
                 import bcrypt
@@ -82,9 +82,7 @@ class CacheBase(object):
             to_hash = bytes('%s$%s' % (salt, password), 'utf-8')
             return '%s$%s' % (salt, getattr(hashlib, crypt_algo)(to_hash).hexdigest())
 
-        if not crypt_algo:
-            hash = lambda self, p, s: s
-        elif crypt_algo == 'bcrypt':
+        if crypt_algo == 'bcrypt':
             hash = _hash_bcrypt
             if config.has_option(section, 'hash-rounds'):
                 rounds = config.getint(section, 'hash-rounds')
@@ -102,6 +100,8 @@ class CacheBase(object):
         else:
             print('Unknown hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
             hash = _hash_none
+    else:
+        hash = lambda self, p, s: s
 
 
 ###################
