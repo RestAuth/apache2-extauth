@@ -24,7 +24,7 @@ config = ConfigParser({
     'PYTHONPATH': None,
     'cache': None,
     'cache-expire': '300',
-    'redis-server': 'localhost',
+    'redis-server': '127.0.0.1',
     'redis-port': '6379',
     'redis-db': '0',
     'memcache-server': '127.0.0.1:11211',
