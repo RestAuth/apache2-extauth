@@ -1,0 +1,42 @@
+# restauth-extauth.py configuration file
+
+# The script is structured into one or more sections, each configuration
+# directive *must* be in a section. The script uses the section defined in the
+# AuthExternalContext configuration directive or the restauth section if you
+# haven't specified AuthExternalContext.
+# 
+# If you have multiple sections defined, you can specify default values inside
+# a DEFAULT section.
+
+[restauth]
+# The URL, user and password of your RestAuth installation:
+server = https://auth.example.com
+user = example.com
+password = nopass
+
+# The script can optionally cache authentication credentials, either use
+# 'memcache' or 'redis':
+#cache = memcache
+
+# Cached credentials will expire after the given number of seconds (default:
+# 300 seconds = 5 minutes):
+#cache-expire = 3002
+
+# memcache cache configuration (default shown here, separate multiple caches
+# by space):
+#memcache-server = 127.0.0.1:11211
+
+# redis cache configuration:
+#redis-server = localhost
+#redis-port = 6379
+#redis-db = 0
+
+# Optionally hash passwords in the cache. Valid settings are any algorithm
+# provided by Python's hashlib module or "bcrypt". By default, passwords are
+# not hashed inside the cache:
+#hash = bcrypt
+
+# For bcrypt and pbkdf2_hmac, specify a non-default number of rounds. The two
+# algorithms use the same setting, but the meaning is different. For bcrypt 12
+# is the default, for pbkdf2_hmac the default is 100000.
+#hash-rounds = 12
