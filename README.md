@@ -19,8 +19,8 @@ If you want to use memcache, also install:
 
 ```
 # via pip:
-pip install python3-memcache
-# via apt:
+pip install python3-memcached
+# or via apt:
 apt-get install python-memcache
 ```
 
@@ -29,7 +29,7 @@ To use a redis-cache, install:
 ```
 # via pip
 pip install redis hiredis
-# via apt:
+# or via apt:
 apt-get install python-redis python-hiredis
 ```
 
@@ -38,7 +38,7 @@ To hash passwords with bcrypt, install:
 ```
 # via pip
 pip install py-bcrypt
-# via apt
+# or via apt
 apt-get install python-bcrypt python3-bcrypt
 ```
 
