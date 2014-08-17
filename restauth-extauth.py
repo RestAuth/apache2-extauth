@@ -7,13 +7,13 @@ import hashlib
 import os
 import sys
 
-if sys.version_info >= 3:
+if sys.version_info >= (3, ):
     from configparser import ConfigParser
 else:
-    from configparser import configparser
+    from ConfigParser import ConfigParser
 
-from RestAuthClient.restauth_user import User
 from RestAuthClient.common import RestAuthConnection
+from RestAuthClient.restauth_user import User
 
 # Read data from stdin
 username = sys.stdin.readline().strip("\n")
@@ -82,10 +82,9 @@ class CacheBase(object):
             to_hash = bytes('%s$%s' % (salt, password), 'utf-8')
             return '%s$%s' % (salt, getattr(hashlib, crypt_algo)(to_hash).hexdigest())
 
-        def _hash_none(self, password, salt=None):
-            return password
-
-        if crypt_algo == 'bcrypt':
+        if not crypt_algo:
+            hash = lambda self, p, s: s
+        elif crypt_algo == 'bcrypt':
             hash = _hash_bcrypt
             if config.has_option(section, 'hash-rounds'):
                 rounds = config.getint(section, 'hash-rounds')
@@ -100,8 +99,6 @@ class CacheBase(object):
                 rounds = 100000
         elif hasattr(hashlib, crypt_algo):
             hash = _hash_hashlib
-        elif not crypt_algo:
-            hash = _hash_none
         else:
             print('Unknown hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
             hash = _hash_none
@@ -112,8 +109,8 @@ class CacheBase(object):
 ###################
 class RedisCache(CacheBase):
     def __init__(self, config, section):
-        import redis
-        self.conn = redis.StrictRedis(
+        from redis.client import StrictRedis
+        self.conn = StrictRedis(
             config.get(section, 'redis-server'),
             config.getint(section, 'redis-port'),
             config.getint(section, 'redis-db'),
@@ -132,7 +129,7 @@ class RedisCache(CacheBase):
             return cached == self.hash(password, cached)
 
     def set_password(self, user, password):
-        self.conn.set(self.prefix('%s-pass' % user), self.hash(password), ex=self.expire)
+        self.conn.set(self.prefix('%s-pass' % user), self.hash(password, None), ex=self.expire)
 
     def in_groups(self, user, groups):
         key = self.prefix('%s-groups' % user)
