@@ -20,7 +20,7 @@ password = nopass
 
 # Cached credentials will expire after the given number of seconds (default:
 # 300 seconds = 5 minutes):
-#cache-expire = 3002
+#cache-expire = 300
 
 # memcache cache configuration (default shown here, separate multiple caches
 # by space):

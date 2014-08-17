@@ -99,9 +99,9 @@ class CacheBase(object):
             hash = _hash_hashlib
         else:
             print('Unknown hash %s, not hashing passwords.' % crypt_algo, file=sys.stderr)
-            hash = _hash_none
+            hash = lambda self, p, s: p
     else:
-        hash = lambda self, p, s: s
+        hash = lambda self, p, s: p
 
 
 ###################
