@@ -12,9 +12,6 @@ if sys.version_info >= (3, ):
 else:
     from ConfigParser import ConfigParser
 
-from RestAuthClient.common import RestAuthConnection
-from RestAuthClient.restauth_user import User
-
 # Read data from stdin
 username = sys.stdin.readline().strip("\n")
 line2 = sys.stdin.readline().strip("\n")
@@ -200,6 +197,9 @@ if cache is not None:
         elif checked is False:
             sys.exit(1)
         # else: cache miss
+
+from RestAuthClient.common import RestAuthConnection
+from RestAuthClient.restauth_user import User
 
 # Setup RestAuth connection
 conn = RestAuthConnection(
