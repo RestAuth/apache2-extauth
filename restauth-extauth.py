@@ -147,11 +147,15 @@ class RedisCache(CacheBase):
 #######################
 class MemcachedCache(CacheBase):
     def __init__(self, config, section):
-        import memcache
-        self.conn = memcache.Client(config.get(section, 'memcache-server').split())
+        from memcache import Client
+        servers = config.get(section, 'memcache-server').split()
+        self.conn = Client(servers)
 
     def key(self, raw):
-        return self.prefix(hashlib.md5(bytes(raw, 'utf-8')).hexdigest())
+        if sys.version_info >= (3, ):
+            return self.prefix(hashlib.md5(bytes(raw, 'utf-8')).hexdigest())
+        else:
+            return self.prefix(hashlib.md5(raw).hexdigest()).encode('utf-8')
 
     def check_password(self, user, password):
         cached = self.conn.get(self.key('%s-pass' % user))
