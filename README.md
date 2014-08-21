@@ -13,7 +13,12 @@ Installation
 
 To install from git, simple clone the repository and configure Apache (see
 below) to use the script inside the directory. The only dependency is
-[RestAuthClient](https://python.restauth.net/#installation). 
+[RestAuthClient](https://python.restauth.net/#installation). It is available
+via pip:
+
+```
+pip install RestAuthClient
+```
 
 If you want to use memcache, also install:
 
