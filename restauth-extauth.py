@@ -17,7 +17,8 @@ username = sys.stdin.readline().strip("\n")
 line2 = sys.stdin.readline().strip("\n")
 
 # Read configuration
-config = ConfigParser({
+config = ConfigParser(allow_no_value=True)
+config['DEFAULT'] = {
     'PYTHONPATH': None,
     'cache': None,
     'cache-expire': '300',
@@ -27,7 +28,7 @@ config = ConfigParser({
     'memcache-server': '127.0.0.1:11211',
     'hash': '',
     'pbkdf2-hash': 'sha256',
-})
+}
 config.read([
     '/etc/restauth-extauth.conf',
     os.path.expanduser(os.path.join('~', '.restauth-extauth.conf')),
@@ -203,7 +204,7 @@ if cache is not None:
         # else: cache miss
 
 from RestAuthClient.common import RestAuthConnection
-from RestAuthClient.restauth_user import User
+from RestAuthClient.user import RestAuthUser as User
 
 # Setup RestAuth connection
 conn = RestAuthConnection(
